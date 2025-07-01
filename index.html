@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Interactive OSINT Challenge - Test your open source intelligence skills">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://Lewgys--aa56c8f844a711f0b0d776b3cceeab13.web.val.run;">
+<title>OSINT Challenge</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+    color: #eee;
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 1rem;
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2rem;
+  }
+
+  /* Global Achievements Panel */
+  .achievements-panel {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 1.5rem;
+    height: fit-content;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .achievements-title {
+    color: #b0d351;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-align: center;
+    border-bottom: 2px solid rgba(176, 211, 81, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
+  .achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .achievement-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(176, 211, 81, 0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    animation: slideInLeft 0.5s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .achievement-item.new {
+    animation: achievementPulse 2s ease-out;
+    border-color: #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  }
+
+  .achievement-item.gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  }
+
+  .achievement-item.gold .achievement-title {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    font-weight: 700;
+  }
+
+  .achievement-item.gold .achievement-icon {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    transform: scale(1.2);
+  }
+
+  .achievement-user {
+    font-weight: 700;
+    color: #b0d351;
+    font-size: 0.9rem;
+  }
+
+  .achievement-title {
+    font-weight: 600;
+    color: #ffd700;
+    font-size: 0.85rem;
+    margin: 0.25rem 0;
+  }
+
+  .achievement-description {
+    color: #ccc;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .achievement-time {
+    color: #888;
+    font-size: 0.7rem;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+  }
+
+  .achievement-icon {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.75rem;
+    font-size: 1.2rem;
+  }
+
+  .achievement-item .achievement-content {
+    margin-left: 2rem;
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes achievementPulse {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+    50% { 
+      transform: scale(1.02);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+    }
+  }
+
+  /* Main content area */
+  .main-content {
+    min-width: 0; /* Prevents grid overflow */
+  }
+
+  /* Login/Registration Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.3s ease;
+  }
+
+  .modal-title {
+    color: #b0d351;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    color: #eee;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: #eee;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #b0d351;
+    box-shadow: 0 0 10px rgba(176, 211, 81, 0.3);
+  }
+
+  .form-submit {
+    width: 100%;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+  }
+
+  .form-submit:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(176, 211, 81, 0.4);
+  }
+
+  .form-error {
+    color: #ff5252;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+
+  /* Progress Dashboard Button */
+  .dashboard-button {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+    z-index: 1000;
+  }
+
+  .dashboard-button:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+
+  /* User info display */
+  .user-info {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid #b0d351;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: #b0d351;
+    display: none;
+    z-index: 1000;
+  }
+
+  .user-info.active {
+    display: block;
+  }
+
+  /* Progress Dashboard */
+  .dashboard-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10001;
+    overflow-y: auto;
+  }
+
+  .dashboard-modal.active {
+    display: block;
+  }
+
+  .dashboard-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 800px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .dashboard-title {
+    color: #b0d351;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #444;
+  }
+
+  .leaderboard-table th {
+    background: rgba(176, 211, 81, 0.1);
+    color: #b0d351;
+    font-weight: 700;
+  }
+
+  .leaderboard-table tr:hover {
+    background: rgba(176, 211, 81, 0.05);
+  }
+
+  .close-dashboard {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+
+  .close-dashboard:hover {
+    color: #b0d351;
+  }
+
+  /* Existing styles from your original file */
+  .header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-top: 3rem;
+  }
+  
+  .hint-counter {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #b0d351;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    margin: 1.5rem auto 2rem auto;
+    max-width: fit-content;
+    white-space: nowrap;
+  }
+  
+  .hint-counter .shame-text {
+    color: #ffecb3;
+  }
+  
+  .briefing-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+  }
+  
+  .briefing-button {
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+  }
+  
+  .briefing-button:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+  
+  .briefing-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 500px;
+    width: 90vw;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: none;
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .briefing-content {
+    color: #eee;
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+  
+  .briefing-title {
+    color: #b0d351;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .briefing-note {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 600;
+  }
+  
+  .briefing-signature {
+    text-align: right;
+    color: #b0d351;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    font-style: italic;
+  }
+  
+  .briefing-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.3s ease;
+  }
+  
+  .briefing-close:hover {
+    color: #b0d351;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .subtitle {
+    color: #999;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .progress-container {
+    background: #1e1e1e;
+    border-radius: 15px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  
+  .progress-bar {
+    background: #333;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-fill {
+    background: linear-gradient(90deg, #b0d351, #a8cc4c);
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+  
+  .progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+  
+  ul.task-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  li.task {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 1px solid #333;
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  li.task::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #b0d351, #a8cc4c);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  li.task:hover {
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border-color: #b0d351;
+    transform: translateY(-2px);
+  }
+  
+  li.task:hover::before {
+    transform: scaleX(1);
+  }
+  
+  li.task:focus-within {
+    outline: 2px solid #b0d351;
+    outline-offset: 2px;
+  }
+  
+  .task-title {
+    font-weight: 700;
+    font-size: 1.3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .task-badge {
+    background: #333;
+    color: #999;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  .task-badge.completed {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    color: white;
+  }
+  
+  .task-badge.locked {
+    background: #444;
+    color: #666;
+  }
+  
+  .task-content {
+    margin-top: 1.5rem;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .question-container {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(176, 211, 81, 0.1);
+  }
+  
+  .question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-content p.question {
+    margin: 0;
+    font-weight: 600;
+    color: #f0f0f0;
+    padding: 0.5rem;
+    background: rgba(176, 211, 81, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #b0d351;
+    flex: 1;
+    margin-right: 0.5rem;
+  }
+  
+  .task-content input[type="text"] {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 2px solid #333;
+    outline: none;
+    font-size: 1rem;
+    background: #2a2a2a;
+    color: #eee;
+    transition: border-color 0.3s ease;
+    margin-top: 0.5rem;
+  }
+  
+  .task-content input[type="text"]:focus {
+    border-color: #b0d351;
+    box-shadow: 0 0 10px rgba(176, 211, 81, 0.3);
+  }
+  
+  .task-content button.submit-btn {
+    margin-top: 1rem;
+    background: linear-gradient(45deg, #b0d351, #6a7740);
+    border: none;
+    padding: 0.8rem 2rem;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .task-content button.submit-btn:hover {
+    background: linear-gradient(45deg, #6a7740, #5a6535);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(176, 211, 81, 0.4);
+  }
+  
+  .task-content button.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .task-content button.submit-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .feedback {
+    margin-top: 1rem;
+    font-weight: 700;
+    min-height: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .feedback.success {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4caf50;
+    color: #81c784;
+  }
+  
+  .feedback.error {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid #f44336;
+    color: #ef5350;
+  }
+  
+  .feedback.info {
+    background: rgba(176, 211, 81, 0.2);
+    border: 1px solid #b0d351;
+    color: #c4de6b;
+  }
+  
+  .task.open > .task-title .arrow {
+    transform: rotate(180deg);
+  }
+  
+  .task .arrow {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+    color: #b0d351;
+  }
+  
+  canvas#fireworks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  
+  li.task.locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none !important;
+  }
+  
+  li.task.bonus {
+    background: linear-gradient(135deg, #2a1810 0%, #3d2817 100%);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  }
+  
+  li.task.bonus::before {
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+  }
+  
+  li.task.bonus:hover {
+    background: linear-gradient(135deg, #3d2817 0%, #4a2f1c 100%);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    transform: translateY(-3px);
+  }
+  
+  li.task.bonus .task-title {
+    color: #ffd700;
+  }
+  
+  li.task.bonus .task-badge.completed {
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #1a1a1a;
+  }
+  
+  li.task.bonus .task-badge:not(.completed) {
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid #ffd700;
+    color: #ffd700;
+  }
+  
+  .hint-btn {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 80px;
+  }
+  
+  .hint-btn:hover {
+    background: rgba(255, 193, 7, 0.3);
+  }
+  
+  .hint-text {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    font-style: italic;
+    display: none;
+  }
+  
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  @media (max-width: 1200px) {
+    body {
+      grid-template-columns: 1fr;
+      max-width: 900px;
+    }
+    
+    .achievements-panel {
+      position: relative;
+      top: 0;
+      max-height: 300px;
+      order: -1;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      padding: 0.5rem;
+      margin: 1rem auto;
+      gap: 1rem;
+    }
+    
+    .achievements-panel {
+      max-height: 250px;
+      padding: 1rem;
+    }
+    
+    .achievements-title {
+      font-size: 1.1rem;
+    }
+    
+    .achievement-item {
+      padding: 0.75rem;
+    }
+    
+    .header {
+      padding-top: 3rem;
+    }
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .task-title {
+      font-size: 1.2rem;
+    }
+    
+    .task-content input[type="text"] {
+      font-size: 16px;
+    }
+    
+    li.task {
+      padding: 1rem;
+    }
+    
+    .briefing-container {
+      position: static;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    
+    .hint-counter {
+      margin: 1rem auto 1.5rem auto;
+    }
+    
+    .briefing-dropdown {
+      position: static;
+      max-width: none;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    
+    .question-header {
+      flex-direction: column;
+    }
+    
+    .task-content p.question {
+      margin-right: 0;
+      margin-bottom: 0.5rem;
+    }
+    
+    .dashboard-button {
+      bottom: 1rem;
+      right: 1rem;
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .header {
+      padding-top: 2.5rem;
+    }
+    
+    .hint-counter {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+      margin: 1rem auto 1rem auto;
+    }
+    
+    .briefing-button {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.8rem;
+    }
+    
+    h1 {
+      font-size: 1.8rem;
+    }
+    
+    .hint-btn {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Global Achievements Panel -->
+<div class="achievements-panel">
+  <div class="achievements-title">🏆 Live Achievements</div>
+  <div class="achievements-list" id="achievementsList">
+    <div style="text-align: center; color: #666; font-style: italic; padding: 2rem;">
+      Waiting for achievements...
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-content">
+
+<!-- Login/Registration Modal -->
+<div class="modal active" id="loginModal">
+  <div class="modal-content">
+    <h2 class="modal-title">Welcome to OSINT Challenge</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="userName">Your Name</label>
+        <input type="text" id="userName" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="userTeam">Team Name (Optional)</label>
+        <input type="text" id="userTeam" autocomplete="organization">
+      </div>
+      <button type="submit" class="form-submit">Start Challenge</button>
+      <div class="form-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+
+<!-- User Info Display -->
+<div class="user-info" id="userInfo">
+  <span id="userDisplay"></span>
+</div>
+
+<!-- Progress Dashboard Button -->
+<button class="dashboard-button" id="dashboardBtn" style="display: none;">
+  📊 Progress Dashboard
+</button>
+
+<!-- Progress Dashboard Modal -->
+<div class="dashboard-modal" id="dashboardModal">
+  <div class="dashboard-content">
+    <button class="close-dashboard" id="closeDashboard">×</button>
+    <h2 class="dashboard-title">OSINT Challenge Leaderboard</h2>
+    <div id="leaderboardContent">
+      <p style="text-align: center; color: #999;">Loading leaderboard...</p>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="briefing-container">
+    <button class="briefing-button" id="briefingBtn">📋Briefing</button>
+    <div class="briefing-dropdown" id="briefingDropdown">
+      <button class="briefing-close" id="briefingClose">✕</button>
+      <div class="briefing-title">Briefing</div>
+      <div class="briefing-content">
+        <p>Welcome to Lewis' OSINT Challenge. This challenge is supposed to test you on a variety of different OSINT techniques. Within your team, it is highly likely that if you smash your heads together, you will complete all 5 Tasks at hand.</p>
+        
+        <p>The challenge at hand will have you investigating a malicious threat actor that has compromised an employee's system and left a note. It is your job to gather as much information as possible on the individual and answer the questions accordingly. I highly recommend that you dig deeper than you think throughout this.</p>
+        
+        <div class="briefing-note">
+          <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques, DO NOT attempt any active techniques such as reaching out to the account holder and attempting brute-force attacks.
+
+          Just so you know, we want to encourage real-world OSINT skills, not source-diving and OWASP top 10.
+        </div>
+        
+        <p>If you have any questions, please shout me over and I may offer a hint. And when you complete ALL the tasks, shout me over to claim your prize...Good Luck</p>
+        
+        <div class="briefing-signature">- Lewis G</div>
+      </div>
+    </div>
+  </div>
+  
+  <h1>The OSINT Gauntlet</h1>
+  <p class="subtitle">Test your Open Source Intelligence skills</p>
+  
+  <div class="progress-container">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">0 of 6 tasks completed</div>
+  </div>
+</div>
+
+<div class="hint-counter" id="hintCounter">
+  Hint <span class="shame-text">Counter of Shame</span>: <span id="hintCount">0</span>
+</div>
+
+<ul class="task-list" id="taskList"></ul>
+<canvas id="fireworks"></canvas>
+
+</div> <!-- End main-content -->
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+
+<script>
+//Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDcv2OFy9cXPA7HeWK-W70-ROqtnz_Dyws",
+  authDomain: "udemy-osint-gauntlet.firebaseapp.com",
+  projectId: "udemy-osint-gauntlet",
+  storageBucket: "udemy-osint-gauntlet.firebasestorage.app",
+  messagingSenderId: "387594157834",
+  appId: "1:387594157834:web:645bc7c0afe9c5373b44f3"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Configuration
+const CONFIG = {
+  HASH_ROUNDS: 1000,
+  FIREWORKS_PARTICLES: 120,
+  ANIMATION_DURATION: 5000,
+  STORAGE_KEY: 'osint_challenge_progress',
+  VAL_TOWN_API: 'https://Lewgys--aa56c8f844a711f0b0d776b3cceeab13.web.val.run'
+};
+
+// Session storage key for user persistence
+const SESSION_STORAGE_KEY = 'osint_challenge_user_session';
+
+// Current user state
+let currentUser = null;
+
+// Global achievements system
+const ACHIEVEMENTS = {
+  helping_hand: {
+    title: "Helping Hand (Cheater)",
+    description: "Used their First Hint.",
+    icon: "💡"
+  },
+  speedrun_hour: {
+    title: "ANY% Speed Run", 
+    description: "Has completed the OSINT Gauntlet within an hour.",
+    icon: "⚡",
+    special: "gold" // Special Styling
+  },
+  gauntlet_complete: {
+    title: "COMPLETED THE GAUNLET",
+    description: "Has Completed the OSINT Gauntlet.",
+    icon: "👑",
+    special: "gold" // Special styling
+  },
+  hint_addict: {
+    title: "This is getting embarrassing...",
+    description: "Used more than 15 Hints.",
+    icon: "🤦"
+  },
+  wrong_king: {
+    title: "King of Getting Answers Wrong",
+    description: "Has had more than 5 Answers Wrong",
+    icon: "👑❌"
+  },
+  baby_steps: {
+    title: "Baby Steps",
+    description: "Completed Task 1!",
+    icon: "👶"
+  },
+  crypto_bro: {
+    title: "Crypto Bro",
+    description: "Completed Task 3 in 30 Minutes or Less",
+    icon: "₿"
+  },
+  no_hint_hero: {
+    title: "No Hint Hero",
+    description: "Complete a Task with no Hints",
+    icon: "🦸"
+  }
+};
+
+let achievementsListener = null;
+let userStartTime = null; // Track when user started
+let taskStartTimes = {}; // Track when each task was started
+let totalWrongAnswers = 0; // Track wrong answers
+let gameInstance = null; // Store the game instance globally
+
+// Input sanitisation
+function sanitizeInput(input) {
+  return input.trim().replace(/[<>]/g, '');
+}
+
+// Tasks configuration WITHOUT ANSWERS
+const tasks = [
+  {
+    id: 'task1',
+    title: 'Task 1: The Tip Off',
+    description: 'Analyse the provided image to identify the attacker',
+    questions: [
+      'What username does the attacker go by? (Click <a href="https://lewgys.github.io/The_OSINT_Gauntlet/images/pwnedletter.svg" data-original-path="/Users/beansbently/Desktop/Screenshots/pwned_note.png" data-uploaded-by="beansbently" target="_blank" rel="noopener noreferrer">here</a> to view the tip-off image.)'
+    ],
+    keys: 1,
+    hints: [
+      ['No hints on Task 1 nice try lol', 'Nice try, still no hints on Task 1...Unless you get it wrong again', 'I lied no Hints :)']
+    ]
+  },
+  {
+    id: 'task2',
+    title: 'Task 2: Recon',
+    description: 'Gather intelligence on the target',
+    questions: [
+      'What is the full email address of the attacker?',
+      'What is the attacker\'s full real name?'
+    ],
+    keys: 2,
+    hints: [
+      ['Try searching the username on different platforms', 'Look for profile information on professional sites', 'GitHub'],
+      ['Social media profiles often contain real names', 'Look through social media', 'No more hints :)']
+    ]
+  },
+  {
+    id: 'task3',
+    title: 'Task 3: Cryptic Crypto',
+    description: 'Investigate cryptocurrency activities',
+    questions: [
+      'What Cryptocurrency does the attacker own a wallet for? (abbreviation of the crypto)',
+      'What is the attacker\'s cryptocurrency wallet address?',
+      'What mining pool did the attacker receive crypto from on January 23rd, 2021?',
+      'What other cryptocurrency did the attacker exchange with?'
+    ],
+    keys: 4,
+    hints: [
+      ['Look for cryptocurrency mentions in profiles', 'Check for wallet address files', 'ETH is a common cryptocurrency'],
+      ['Wallet addresses are long alphanumeric strings', 'Check social media profiles for addresses', 'Look Deeper into pre-existing files'],
+      ['Use blockchain explorers to trace transactions', 'Check transaction history for the date', 'Mining pools have identifiable names'],
+      ['Look at exchange transactions', 'Check what was traded for', 'No more hints :)']
+    ]
+  },
+  {
+    id: 'task4',
+    title: 'Task 4: Social Scrape',
+    description: 'Find current social media presence',
+    questions: [
+      'What is the attacker\'s current Twitter (X) handle?',
+      'At what company was the attacker last employed at?'
+    ],
+    keys: 2,
+    hints: [
+      ['Try variations of known usernames', 'Check for similar handles', 'No More Hints :)'],
+      ['Check professional networking sites', 'Look for employment history', 'What documents are usually found to have past experience?']
+    ]
+  },
+  {
+    id: 'task5',
+    title: 'Task 5: Air Miles',
+    description: 'Track travel movements',
+    questions: [
+      'What airport is closest to the location where the attacker shared a photo prior to getting on their flight? (Airport code)',
+      'What airport is the attacker having a layover at? (Airport code)'
+    ],
+    keys: 2,
+    hints: [
+      ['Look for landmarks in photos', 'Reverse Image Search is a good tool', 'No More Hints!'],
+      ['Anything stand out in the picture?', 'No More Hints :)', 'No More Hints :)']
+    ]
+  },
+  {
+    id: 'task6',
+    title: 'Task 6: Bonus Round',
+    description: 'Final challenge - Good Luck',
+    questions: [
+      'What is the mystery flag?',
+      'What building does the attacker live in?',
+      'On what day did BeansBently get his favorite Caffeinated Beverage? (Provide answer in following format: DD/MM/YYYY)'
+    ],
+    keys: 3,
+    hiddenUntil: 'task5',
+    hints: [
+      ['Delve Deeper into places you have already been', 'you need to DIG deeper', 'This is a bonus round, you do not get a third hint ;)'],
+      ['Sometimes the answer is hidden in plain sight', 'No More Hints :)', 'No More Hints :)'],
+      ['Check social media posts carefully', 'Look for coffee-related posts', 'Check the metadata or post dates']
+    ]
+  }
+];
+
+// Session management functions
+function loadUserSession() {
+  try {
+    const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!savedSession) return null;
+    
+    const session = JSON.parse(savedSession);
+    
+    // Check if session is recent (within 24 hours)
+    const sessionAge = Date.now() - session.timestamp;
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+    
+    if (sessionAge > maxAge) {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Error loading session:', error);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    return null;
+  }
+}
+
+function clearUserSession() {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  currentUser = null;
+}
+
+// User Management
+async function saveUserToFirebase(name, team) {
+  try {
+    // Always create a new user entry (no checking for duplicates)
+    const userRef = await db.collection('users').add({
+      name: name,
+      team: team || 'Solo',
+      startTime: firebase.firestore.FieldValue.serverTimestamp(),
+      lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const userId = userRef.id;
+    
+    // Save session to localStorage with unique session ID
+    const userSession = {
+      id: userId,
+      name: name,
+      team: team || 'Solo',
+      timestamp: Date.now(),
+      sessionId: generateSessionId() // Add unique session identifier
+    };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userSession));
+    
+    return userId;
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return null;
+  }
+}
+
+// Generate unique session ID
+function generateSessionId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Achievement Management - Fixed version
+async function unlockAchievement(achievementId, userId, userName, teamName) {
+  try {
+    console.log('Attempting to unlock achievement:', achievementId, 'for user:', userName, 'with ID:', userId);
+    
+    if (!ACHIEVEMENTS[achievementId]) {
+      console.warn('Achievement not found:', achievementId);
+      return;
+    }
+
+    if (!userId || !userName) {
+      console.error('Missing required parameters:', { userId, userName });
+      return;
+    }
+
+    // Check if user already has this achievement
+    const existingQuery = await db.collection('achievements')
+      .where('userId', '==', userId)
+      .where('achievementId', '==', achievementId)
+      .get();
+
+    if (!existingQuery.empty) {
+      console.log('User already has this achievement:', achievementId);
+      return; // User already has this achievement
+    }
+
+    console.log('Awarding achievement:', achievementId);
+    
+    // Award the achievement with proper timestamp
+    await db.collection('achievements').add({
+      userId: userId,
+      userName: userName,
+      teamName: teamName || 'Solo',
+      achievementId: achievementId,
+      achievementTitle: ACHIEVEMENTS[achievementId].title,
+      achievementDescription: ACHIEVEMENTS[achievementId].description,
+      achievementIcon: ACHIEVEMENTS[achievementId].icon,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`Achievement unlocked: ${achievementId} for ${userName}`);
+  } catch (error) {
+    console.error('Error unlocking achievement:', error);
+  }
+}
+
+// Real-time achievements listener - Fixed version
+function startAchievementsListener() {
+  const achievementsList = document.getElementById('achievementsList');
+  
+  console.log('Starting achievements listener...');
+  
+  achievementsListener = db.collection('achievements')
+    .orderBy('timestamp', 'desc')
+    .limit(20)
+    .onSnapshot((snapshot) => {
+      console.log('Achievements snapshot received, changes:', snapshot.docChanges().length);
+      
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const achievement = change.doc.data();
+          const docId = change.doc.id;
+          console.log('New achievement added:', achievement);
+          
+          // Add the document ID to the achievement data
+          achievement.docId = docId;
+          
+          displayAchievement(achievement, achievementsList);
+        }
+      });
+    }, (error) => {
+      console.error('Error in achievements listener:', error);
+    });
+}
+
+// Fixed displayAchievement function
+function displayAchievement(achievement, container) {
+  // Remove placeholder if exists
+  const placeholder = container.querySelector('[style*="italic"]');
+  if (placeholder) {
+    placeholder.remove();
+  }
+
+  // Check if this achievement already exists in the DOM
+  if (achievement.docId && container.querySelector(`[data-doc-id="${achievement.docId}"]`)) {
+    console.log('Achievement already displayed:', achievement.docId);
+    return;
+  }
+
+  const achievementEl = document.createElement('div');
+  achievementEl.className = 'achievement-item new';
+  if (achievement.docId) {
+    achievementEl.setAttribute('data-doc-id', achievement.docId);
+  }
+  
+  // Add special styling for gold achievements
+  if (achievement.achievementId === 'gauntlet_complete') {
+    achievementEl.classList.add('gold');
+  }
+  
+  // Get time ago - handle both timestamp formats
+  const timeAgo = getTimeAgo(achievement.timestamp);
+  
+  achievementEl.innerHTML = `
+    <div class="achievement-icon">${achievement.achievementIcon}</div>
+    <div class="achievement-time">${timeAgo}</div>
+    <div class="achievement-content">
+      <div class="achievement-user">${achievement.userName}${achievement.teamName !== 'Solo' ? ` (${achievement.teamName})` : ''} Unlocked an Achievement!</div>
+      <div class="achievement-title">${achievement.achievementTitle}</div>
+      <div class="achievement-description">${achievement.achievementDescription}</div>
+    </div>
+  `;
+  
+  // Insert at the top
+  container.insertBefore(achievementEl, container.firstChild);
+  
+  // Remove 'new' class after animation
+  setTimeout(() => {
+    achievementEl.classList.remove('new');
+  }, 2000);
+  
+  // Keep only latest 15 achievements visible
+  while (container.children.length > 15) {
+    container.removeChild(container.lastChild);
+  }
+}
+
+// Fixed getTimeAgo function to handle Firebase timestamps
+function getTimeAgo(timestamp) {
+  if (!timestamp) return 'now';
+  
+  const now = new Date();
+  let time;
+  
+  // Handle Firebase Timestamp
+  if (timestamp && timestamp.toDate) {
+    time = timestamp.toDate();
+  } else if (timestamp && timestamp.seconds) {
+    time = new Date(timestamp.seconds * 1000);
+  } else if (typeof timestamp === 'string') {
+    time = new Date(timestamp);
+  } else {
+    return 'now';
+  }
+  
+  const diffMs = now - time;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  
+  if (diffMins < 1) return 'now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return time.toLocaleDateString();
+}
+
+// Fixed checkAchievements function
+async function checkAchievements(context, data = {}) {
+  if (!currentUser || !currentUser.id) {
+    console.log('No current user or user ID for achievements:', currentUser);
+    return;
+  }
+  
+  console.log('Checking achievements:', context, data);
+  const { name: userName, team: teamName, id: userId } = currentUser;
+  
+  // Validate that we have all required user data
+  if (!userId || !userName) {
+    console.log('Missing required user data:', { userId, userName });
+    return;
+  }
+  
+  switch (context) {
+    case 'user_started':
+      // Record when user started the challenge
+      userStartTime = Date.now();
+      console.log('User started at:', userStartTime);
+      break;
+      
+    case 'task_started':
+      // Record when user started a specific task
+      if (data.taskId) {
+        taskStartTimes[data.taskId] = Date.now();
+        console.log('Task started:', data.taskId, 'at:', taskStartTimes[data.taskId]);
+      }
+      break;
+      
+    case 'task_completed':
+      console.log('Task completed:', data.taskId);
+      // Baby Steps - Complete Task 1
+      if (data.taskId === 'task1') {
+        await unlockAchievement('baby_steps', userId, userName, teamName);
+      }
+      
+      // Crypto Bro - Complete Task 3 in 30 minutes or less
+      if (data.taskId === 'task3') {
+        const taskStartTime = taskStartTimes['task3'];
+        if (taskStartTime) {
+          const timeSpent = (Date.now() - taskStartTime) / 1000 / 60; // minutes
+          console.log('Task 3 completed in:', timeSpent, 'minutes');
+          if (timeSpent <= 30) {
+            await unlockAchievement('crypto_bro', userId, userName, teamName);
+          }
+        }
+      }
+      
+      // No Hint Hero - Complete a task with no hints
+      if (data.taskHintsUsed === 0) {
+        console.log('Task completed with no hints');
+        await unlockAchievement('no_hint_hero', userId, userName, teamName);
+      }
+      
+      // COMPLETED THE GAUNTLET - Complete all tasks
+      if (data.completedCount === 6) {
+        await unlockAchievement('gauntlet_complete', userId, userName, teamName);
+        
+        // ANY% Speed Run - Complete within an hour
+        if (userStartTime) {
+          const totalTime = (Date.now() - userStartTime) / 1000 / 60 / 60; // hours
+          console.log('Total completion time:', totalTime, 'hours');
+          if (totalTime <= 1) {
+            await unlockAchievement('speedrun_hour', userId, userName, teamName);
+          }
+        }
+      }
+      break;
+      
+    case 'hint_used':
+      console.log('Hint used, total count:', data.hintCount);
+      // Helping Hand (Cheater) - Use first hint
+      if (data.hintCount === 1) {
+        console.log('First hint used - unlocking helping_hand');
+        await unlockAchievement('helping_hand', userId, userName, teamName);
+      }
+      
+      // This is getting embarrassing - Use more than 15 hints
+      if (data.hintCount > 15) {
+        console.log('More than 15 hints used - unlocking hint_addict');
+        await unlockAchievement('hint_addict', userId, userName, teamName);
+      }
+      break;
+      
+    case 'answer_wrong':
+      // King of Getting Answers Wrong - Have more than 5 wrong answers
+      totalWrongAnswers++;
+      console.log('Wrong answer, total count:', totalWrongAnswers);
+      if (totalWrongAnswers > 5) {
+        await unlockAchievement('wrong_king', userId, userName, teamName);
+      }
+      break;
+  }
+}
+
+// FIXED: Updated user progress tracking with single document per user
+async function updateUserProgress(userId, taskId, completed, hints, attempts) {
+  try {
+    // Use a single document per user in userProgress collection
+    const userProgressRef = db.collection('userProgress').doc(userId);
+    
+    await userProgressRef.set({
+      userId: userId,
+      totalHints: hints,  // Store the current TOTAL hints
+      completedTasks: firebase.firestore.FieldValue.arrayUnion(taskId), // Track completed tasks
+      tasks: {
+        [taskId]: {
+          completed: completed,
+          attempts: attempts,
+          completedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }
+      },
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    
+    // Update user's last active time
+    await db.collection('users').doc(userId).update({
+      lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Update session timestamp to keep it fresh
+    const currentSession = loadUserSession();
+    if (currentSession && currentSession.id === userId) {
+      currentSession.timestamp = Date.now();
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentSession));
+    }
+  } catch (error) {
+    console.error('Error updating progress:', error);
+  }
+}
+
+// FIXED: Updated leaderboard to work with both old and new structures
+async function loadLeaderboard() {
+  try {
+    const users = await db.collection('users').get();
+    
+    // Try to get new userProgress collection
+    const userProgress = await db.collection('userProgress').get();
+    
+    // If no new structure data, fall back to old structure
+    if (userProgress.empty) {
+      console.log('No userProgress data found, using old progress structure');
+      
+      // OLD STRUCTURE SUPPORT
+      const progress = await db.collection('progress').get();
+      
+      const userMap = {};
+      users.forEach(doc => {
+        userMap[doc.id] = { id: doc.id, ...doc.data(), completedTasks: 0, totalHints: 0 };
+      });
+      
+      // Process old structure
+      const hintsPerUser = {}; // Track max hints per user
+      progress.forEach(doc => {
+        const data = doc.data();
+        if (data.completed && userMap[data.userId]) {
+          userMap[data.userId].completedTasks++;
+          // Use MAX hints value instead of summing
+          hintsPerUser[data.userId] = Math.max(
+            hintsPerUser[data.userId] || 0,
+            data.hintsUsed || 0
+          );
+        }
+      });
+      
+      // Apply the max hints to each user
+      Object.keys(hintsPerUser).forEach(userId => {
+        if (userMap[userId]) {
+          userMap[userId].totalHints = hintsPerUser[userId];
+        }
+      });
+      
+      return Object.values(userMap).sort((a, b) => {
+        if (b.completedTasks !== a.completedTasks) {
+          return b.completedTasks - a.completedTasks;
+        }
+        return a.totalHints - b.totalHints;
+      });
+    } else {
+      // NEW STRUCTURE
+      console.log('Using new userProgress structure');
+      
+      const progressMap = {};
+      userProgress.forEach(doc => {
+        progressMap[doc.id] = doc.data();
+      });
+      
+      const leaderboard = [];
+      users.forEach(doc => {
+        const userData = doc.data();
+        const progress = progressMap[doc.id] || {};
+        
+        leaderboard.push({
+          id: doc.id,
+          ...userData,
+          completedTasks: (progress.completedTasks || []).length,
+          totalHints: progress.totalHints || 0
+        });
+      });
+      
+      return leaderboard.sort((a, b) => {
+        if (b.completedTasks !== a.completedTasks) {
+          return b.completedTasks - a.completedTasks;
+        }
+        return a.totalHints - b.totalHints;
+      });
+    }
+  } catch (error) {
+    console.error('Error loading leaderboard:', error);
+    return [];
+  }
+}
+
+// Login functionality
+document.addEventListener('DOMContentLoaded', () => {
+  const loginForm = document.getElementById('loginForm');
+  const loginModal = document.getElementById('loginModal');
+  const userInfo = document.getElementById('userInfo');
+  const userDisplay = document.getElementById('userDisplay');
+  const dashboardBtn = document.getElementById('dashboardBtn');
+  const dashboardModal = document.getElementById('dashboardModal');
+  const closeDashboard = document.getElementById('closeDashboard');
+  
+  // Check for existing session on page load
+  const existingSession = loadUserSession();
+  if (existingSession) {
+    // Restore user session
+    currentUser = existingSession;
+    loginModal.classList.remove('active');
+    userInfo.classList.add('active');
+    userDisplay.textContent = `${existingSession.name}${existingSession.team ? ` (${existingSession.team})` : ''}`;
+    dashboardBtn.style.display = 'block';
+    
+    //Initialise the main challenge
+    gameInstance = new OSINTChallenge();
+    
+    // Start listening for achievements
+    startAchievementsListener();
+    
+    // Mark user as started for achievement tracking
+    checkAchievements('user_started');
+  }
+  
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('userName').value.trim();
+    const team = document.getElementById('userTeam').value.trim();
+    
+    if (!name) {
+      document.getElementById('loginError').textContent = 'Please enter your name';
+      return;
+    }
+    
+    const userId = await saveUserToFirebase(name, team);
+    
+    if (userId) {
+      currentUser = { id: userId, name, team };
+      loginModal.classList.remove('active');
+      userInfo.classList.add('active');
+      userDisplay.textContent = `${name}${team ? ` (${team})` : ''}`;
+      dashboardBtn.style.display = 'block';
+      
+      //Initialise the main challenge
+      gameInstance = new OSINTChallenge();
+      
+      // Start listening for achievements
+      startAchievementsListener();
+      
+      // Mark user as started for achievement tracking
+      checkAchievements('user_started');
+    } else {
+      document.getElementById('loginError').textContent = 'Error starting challenge. Please try again.';
+    }
+  });
+  
+  // Dashboard functionality
+  dashboardBtn.addEventListener('click', async () => {
+    dashboardModal.classList.add('active');
+    const leaderboardContent = document.getElementById('leaderboardContent');
+    leaderboardContent.innerHTML = '<p style="text-align: center; color: #999;">Loading leaderboard...</p>';
+    
+    const leaderboard = await loadLeaderboard();
+    
+    if (leaderboard.length === 0) {
+      leaderboardContent.innerHTML = '<p style="text-align: center; color: #999;">No progress data yet.</p>';
+      return;
+    }
+    
+    let html = `
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Name</th>
+            <th>Team</th>
+            <th>Tasks Completed</th>
+            <th>Hints Used</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    leaderboard.forEach((user, index) => {
+      const isCurrentUser = currentUser && user.id === currentUser.id;
+      html += `
+        <tr${isCurrentUser ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
+          <td>${index + 1}</td>
+          <td>${user.name}${isCurrentUser ? ' (You)' : ''}</td>
+          <td>${user.team || 'Solo'}</td>
+          <td>${user.completedTasks}/6</td>
+          <td>${user.totalHints}</td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table>';
+    leaderboardContent.innerHTML = html;
+  });
+  
+  closeDashboard.addEventListener('click', () => {
+    dashboardModal.classList.remove('active');
+  });
+  
+  // Briefing functionality
+  const briefingBtn = document.getElementById('briefingBtn');
+  const briefingDropdown = document.getElementById('briefingDropdown');
+  const briefingClose = document.getElementById('briefingClose');
+
+  function toggleBriefing() {
+    const isVisible = briefingDropdown.style.display === 'block';
+    briefingDropdown.style.display = isVisible ? 'none' : 'block';
+  }
+
+  function closeBriefing() {
+    briefingDropdown.style.display = 'none';
+  }
+
+  briefingBtn.addEventListener('click', toggleBriefing);
+  briefingClose.addEventListener('click', closeBriefing);
+
+  // Close briefing when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!briefingBtn.contains(e.target) && !briefingDropdown.contains(e.target)) {
+      closeBriefing();
+    }
+  });
+
+  // Close briefing on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeBriefing();
+      if (dashboardModal.classList.contains('active')) {
+        dashboardModal.classList.remove('active');
+      }
+    }
+  });
+});
+
+// Game state management
+class OSINTChallenge {
+  constructor() {
+    this.completedTasks = this.loadProgress();
+    this.attemptCounts = {};
+    this.questionAttempts = {}; // Track attempts per question
+    this.hintClickCount = this.loadHintCount();
+    this.taskHintsUsed = {}; // Track hints used per task
+    this.taskListEl = document.getElementById('taskList');
+    this.hintCountEl = document.getElementById('hintCount');
+    this.init();
+  }
+
+  init() {
+    this.checkIntegrity();
+    this.createTasksUI();
+    this.updateProgress();
+    this.updateHintCounter();
+  }
+
+  checkIntegrity() {
+    if (tasks.length !== 6) {
+      console.warn('Task integrity check failed');
+    }
+  }
+
+  loadProgress() {
+    try {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      console.error('Failed to load progress:', e);
+      return {};
+    }
+  }
+
+  loadHintCount() {
+    try {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY + '_hints');
+      return saved ? parseInt(saved) : 0;
+    } catch (e) {
+      console.error('Failed to load hint count:', e);
+      return 0;
+    }
+  }
+
+  saveProgress() {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.completedTasks));
+    } catch (e) {
+      console.error('Failed to save progress:', e);
+    }
+  }
+
+  saveHintCount() {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY + '_hints', this.hintClickCount.toString());
+    } catch (e) {
+      console.error('Failed to save hint count:', e);
+    }
+  }
+
+  updateHintCounter() {
+    if (this.hintCountEl) {
+      this.hintCountEl.textContent = this.hintClickCount;
+    }
+  }
+
+  updateProgress() {
+    const completed = Object.keys(this.completedTasks).length;
+    const isTask6Unlocked = this.completedTasks['task5'];
+    const visibleTotal = isTask6Unlocked ? 6 : 5;
+    const percentage = (completed / visibleTotal) * 100;
+    
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    progressFill.style.width = `${percentage}%`;
+    progressText.textContent = `${completed} of ${visibleTotal} tasks completed`;
+    
+    if (isTask6Unlocked && !document.querySelector('[data-task-id="task6"]').style.display !== 'none') {
+      progressText.textContent += ' 🎁 Bonus task unlocked!';
+    }
+  }
+
+  createTasksUI() {
+    tasks.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.classList.add('task');
+      li.dataset.taskId = task.id;
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+
+      if (task.hiddenUntil && !this.completedTasks[task.hiddenUntil]) {
+        li.style.display = 'none';
+      }
+
+      if (this.completedTasks[task.id]) {
+        li.classList.add('completed');
+      }
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'task-title';
+      
+      const titleText = document.createElement('span');
+      titleText.textContent = task.title;
+      
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'task-status';
+      
+      const badge = document.createElement('span');
+      badge.className = 'task-badge';
+      
+      if (this.completedTasks[task.id]) {
+        badge.textContent = 'Completed';
+        badge.classList.add('completed');
+      } else if (index > 0 && !this.completedTasks[tasks[index - 1]?.id]) {
+        badge.textContent = 'Locked';
+        badge.classList.add('locked');
+        li.classList.add('locked');
+      } else {
+        badge.textContent = 'Available';
+      }
+      
+      const arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.innerHTML = '▼';
+      
+      statusDiv.appendChild(badge);
+      statusDiv.appendChild(arrow);
+      titleDiv.appendChild(titleText);
+      titleDiv.appendChild(statusDiv);
+      li.appendChild(titleDiv);
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'task-content';
+
+      if (task.description) {
+        const descP = document.createElement('p');
+        descP.style.fontStyle = 'italic';
+        descP.style.color = '#999';
+        descP.style.marginBottom = '1rem';
+        descP.textContent = task.description;
+        contentDiv.appendChild(descP);
+      }
+
+      //Initialise task hints counter
+      this.taskHintsUsed[task.id] = 0;
+
+      // Questions with individual hint buttons
+      task.questions.forEach((q, i) => {
+        const questionContainer = document.createElement('div');
+        questionContainer.className = 'question-container';
+        
+        const questionHeader = document.createElement('div');
+        questionHeader.className = 'question-header';
+        
+        const questionP = document.createElement('p');
+        questionP.className = 'question';
+        questionP.innerHTML = q;
+        
+        const hintBtn = document.createElement('button');
+        hintBtn.textContent = 'Hint';
+        hintBtn.className = 'hint-btn';
+        hintBtn.setAttribute('aria-label', `Show hint for question ${i + 1}`);
+        hintBtn.dataset.questionIndex = i;
+        
+        questionHeader.appendChild(questionP);
+        questionHeader.appendChild(hintBtn);
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.autocomplete = 'off';
+        input.id = `${task.id}_q${i}`;
+        input.setAttribute('aria-label', `Answer for question ${i + 1}`);
+        
+        const hintText = document.createElement('div');
+        hintText.className = 'hint-text';
+        hintText.id = `${task.id}_hint${i}`;
+        
+        questionContainer.appendChild(questionHeader);
+        questionContainer.appendChild(input);
+        questionContainer.appendChild(hintText);
+        
+        contentDiv.appendChild(questionContainer);
+        
+        // Hint button handler
+        hintBtn.addEventListener('click', () => this.showQuestionHint(task, i, hintText, hintBtn));
+      });
+
+      // Submit button
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'Submit';
+      submitBtn.className = 'submit-btn';
+      submitBtn.setAttribute('aria-label', 'Submit answers');
+      contentDiv.appendChild(submitBtn);
+
+      // Feedback
+      const feedbackP = document.createElement('p');
+      feedbackP.className = 'feedback';
+      feedbackP.setAttribute('aria-live', 'polite');
+      contentDiv.appendChild(feedbackP);
+
+      li.appendChild(contentDiv);
+
+      // Event handlers
+      this.setupEventHandlers(li, task, index, submitBtn, feedbackP);
+
+      this.taskListEl.appendChild(li);
+    });
+  }
+
+  setupEventHandlers(li, task, index, submitBtn, feedbackP) {
+    const titleDiv = li.querySelector('.task-title');
+    const contentDiv = li.querySelector('.task-content');
+
+    const toggleTask = () => {
+      if (this.isTaskLocked(task, index)) {
+        this.showFeedback(feedbackP, 'You need to complete the previous task first!', 'error');
+        return;
+      }
+
+      if (task.hiddenUntil && !this.completedTasks[task.hiddenUntil]) {
+        this.showFeedback(feedbackP, 'This task is not yet available!', 'error');
+        return;
+      }
+
+      const isOpen = li.classList.contains('open');
+      
+      document.querySelectorAll('li.task.open').forEach(openLi => {
+        if (openLi !== li) {
+          openLi.classList.remove('open');
+          openLi.querySelector('.task-content').style.display = 'none';
+        }
+      });
+
+      if (isOpen) {
+        li.classList.remove('open');
+        contentDiv.style.display = 'none';
+      } else {
+        li.classList.add('open');
+        contentDiv.style.display = 'block';
+        contentDiv.querySelector('input')?.focus();
+        
+        // Mark task as started for achievement tracking
+        checkAchievements('task_started', { taskId: task.id });
+      }
+    };
+
+    titleDiv.addEventListener('click', toggleTask);
+    titleDiv.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleTask();
+      }
+    });
+
+    contentDiv.addEventListener('click', e => e.stopPropagation());
+
+    submitBtn.addEventListener('click', () => this.handleSubmit(task, feedbackP, submitBtn));
+
+    contentDiv.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          this.handleSubmit(task, feedbackP, submitBtn);
+        }
+      });
+    });
+  }
+
+  isTaskLocked(task, index) {
+    return index > 0 && !this.completedTasks[tasks[index - 1]?.id];
+  }
+
+  showQuestionHint(task, questionIndex, hintText, hintBtn) {
+    if (!task.hints || !task.hints[questionIndex]) return;
+    
+    // Initialize question attempts if not exists
+    const questionKey = `${task.id}_q${questionIndex}`;
+    if (!this.questionAttempts[questionKey]) {
+      this.questionAttempts[questionKey] = 0;
+    }
+    
+    const attemptCount = this.questionAttempts[questionKey];
+    const availableHints = task.hints[questionIndex];
+    const hintIndex = Math.min(attemptCount, availableHints.length - 1);
+    
+    if (hintText.style.display === 'block') {
+      hintText.style.display = 'none';
+      hintBtn.textContent = 'Hint';
+    } else {
+      // Increment hint counter
+      this.hintClickCount++;
+      this.taskHintsUsed[task.id]++;
+      this.saveHintCount();
+      this.updateHintCounter();
+      
+      // Check for hint achievements
+      console.log('Checking hint achievements, hint count:', this.hintClickCount);
+      checkAchievements('hint_used', { hintCount: this.hintClickCount });
+      
+      hintText.textContent = availableHints[hintIndex];
+      hintText.style.display = 'block';
+      hintBtn.textContent = 'Hide';
+    }
+  }
+
+  async handleSubmit(task, feedbackP, submitBtn) {
+    const inputs = Array.from(document.querySelectorAll(`input[id^="${task.id}_q"]`));
+    const answers = inputs.map(inp => sanitizeInput(inp.value));
+
+    if (answers.some(answer => !answer)) {
+      this.showFeedback(feedbackP, 'Please fill in all fields.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+    submitBtn.textContent = '';
+
+    try {
+      // Call Val.town API for validation
+      const response = await fetch(CONFIG.VAL_TOWN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          taskId: task.id, 
+          answers: answers,
+          userId: currentUser?.id || 'anonymous'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Validation failed');
+      }
+
+      const result = await response.json();
+      const allCorrect = result.allCorrect;
+      
+      if (allCorrect) {
+        if (this.completedTasks[task.id]) {
+          this.showFeedback(feedbackP, 'Task already completed! 🎉', 'info');
+        } else {
+          this.completedTasks[task.id] = {
+            completed: true,
+            timestamp: new Date().toISOString(),
+            attempts: (this.attemptCounts[task.id] || 0) + 1
+          };
+          this.saveProgress();
+          this.showFeedback(feedbackP, 'Correct! Task completed! 🎉', 'success');
+          this.launchFireworks();
+          this.updateTaskStatus(task.id);
+          this.updateProgress();
+          this.unlockNextTask(task);
+          
+          // Check for task completion achievements
+          const taskHintsUsed = this.taskHintsUsed[task.id] || 0;
+          checkAchievements('task_completed', { 
+            taskId: task.id, 
+            completedCount: Object.keys(this.completedTasks).length,
+            attempts: this.attemptCounts[task.id] || 1,
+            hintsUsed: this.hintClickCount,
+            taskHintsUsed: taskHintsUsed
+          });
+          
+          // Update Firebase with TOTAL hints count
+          if (currentUser) {
+            await updateUserProgress(
+              currentUser.id,
+              task.id,
+              true,
+              this.hintClickCount,  // Pass the TOTAL hints used so far
+              this.attemptCounts[task.id] || 1
+            );
+          }
+        }
+      } else {
+        // Increment attempt counts for incorrect questions
+        result.results.forEach((correct, index) => {
+          if (!correct) {
+            const questionKey = `${task.id}_q${index}`;
+            this.questionAttempts[questionKey] = (this.questionAttempts[questionKey] || 0) + 1;
+          }
+        });
+        
+        this.attemptCounts[task.id] = (this.attemptCounts[task.id] || 0) + 1;
+        
+        const incorrectCount = result.results.filter(r => !r).length;
+        this.showFeedback(feedbackP, `${incorrectCount} answer(s) incorrect. Check the hints for help!`, 'error');
+        
+        // Track wrong answers for achievements
+        checkAchievements('answer_wrong', { wrongCount: incorrectCount });
+      }
+    } catch (error) {
+      this.showFeedback(feedbackP, 'An error occurred. Please try again.', 'error');
+      console.error('Validation error:', error);
+    } finally {
+      setTimeout(() => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+        submitBtn.textContent = 'Submit';
+      }, 1000);
+    }
+  }
+
+  showFeedback(feedbackEl, message, type) {
+    feedbackEl.textContent = message;
+    feedbackEl.className = `feedback ${type}`;
+  }
+
+  updateTaskStatus(taskId) {
+    const taskEl = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (taskEl) {
+      taskEl.classList.add('completed');
+      const badge = taskEl.querySelector('.task-badge');
+      badge.textContent = 'Completed';
+      badge.classList.add('completed');
+    }
+  }
+
+  unlockNextTask(currentTask) {
+    const currentIndex = tasks.findIndex(t => t.id === currentTask.id);
+    if (currentIndex < tasks.length - 1) {
+      const nextTask = tasks[currentIndex + 1];
+      const nextTaskEl = document.querySelector(`[data-task-id="${nextTask.id}"]`);
+      if (nextTaskEl) {
+        nextTaskEl.style.display = 'list-item';
+        nextTaskEl.classList.remove('locked');
+        const badge = nextTaskEl.querySelector('.task-badge');
+        badge.textContent = 'Available';
+        badge.classList.remove('locked');
+      }
+    }
+
+    tasks.forEach(task => {
+      if (task.hiddenUntil === currentTask.id) {
+        const hiddenTaskEl = document.querySelector(`[data-task-id="${task.id}"]`);
+        if (hiddenTaskEl) {
+          hiddenTaskEl.style.display = 'list-item';
+          hiddenTaskEl.classList.add('bonus');
+        }
+      }
+    });
+  }
+
+  launchFireworks() {
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = Array.from({ length: CONFIG.FIREWORKS_PARTICLES }, () => ({
+      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+      y: canvas.height / 2 + (Math.random() - 0.5) * 200,
+      radius: Math.random() * 4 + 1,
+      color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+      angle: Math.random() * 2 * Math.PI,
+      speed: Math.random() * 8 + 3,
+      alpha: 1,
+      decay: 0.015 + Math.random() * 0.02,
+      gravity: 0.1
+    }));
+
+    function animate() {
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((particle, index) => {
+        particle.x += Math.cos(particle.angle) * particle.speed;
+        particle.y += Math.sin(particle.angle) * particle.speed + particle.gravity;
+        particle.speed *= 0.99;
+        particle.alpha -= particle.decay;
+        particle.gravity += 0.02;
+
+        if (particle.alpha <= 0) {
+          particles.splice(index, 1);
+          return;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = particle.alpha;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = particle.color;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      if (particles.length > 0) {
+        requestAnimationFrame(animate);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    animate();
+    
+    setTimeout(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, CONFIG.ANIMATION_DURATION);
+  }
+}
+
+window.addEventListener('resize', () => {
+  const canvas = document.getElementById('fireworks');
+  if (canvas) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('li.task.open').forEach(li => {
+      li.classList.remove('open');
+      li.querySelector('.task-content').style.display = 'none';
+    });
+  }
+});
+
+setInterval(() => {
+  if (tasks.length !== 6) {
+    console.warn('Task integrity compromised');
+  }
+}, 5000);
+
+console.log(`
+  ╔═══════════════════════════════════╗
+  ║        OSINT Challenge            ║
+  ║                                   ║
+  ║   Looking for shortcuts? 🕵️       ║
+  ║   That's not very OSINT of you!   ║
+  ║                                   ║
+  ║   Happy investigating! 🔍         ║
+  ╚═══════════════════════════════════╝
+`);
+
+</script>
+
+</body>
+</html>
